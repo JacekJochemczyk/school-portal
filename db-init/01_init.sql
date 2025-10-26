@@ -1,26 +1,21 @@
--- UWAGA: tutaj wpisujemy wartości bezpośrednio, bo Docker init nie rozumie zmiennych środowiskowych
-
+-- 1. Utworzenie użytkownika, jeśli nie istnieje
 DO
 $$
 BEGIN
     IF NOT EXISTS (
         SELECT FROM pg_catalog.pg_roles WHERE rolname = 'schoolapp'
     ) THEN
-        EXECUTE 'CREATE ROLE schoolapp LOGIN PASSWORD ''KarmazynowyKufel%''';
+        EXECUTE 'CREATE ROLE (loginapp) LOGIN PASSWORD ''TwojeHasloApp''';
     END IF;
 END
 $$;
 
-DO
-$$
-BEGIN
-    IF NOT EXISTS (
-        SELECT FROM pg_database WHERE datname = 'schooldb'
-    ) THEN
-        EXECUTE 'CREATE DATABASE schooldb OWNER schoolapp';
-    END IF;
-END
-$$;
+-- 2. Utworzenie bazy danych, jeśli nie istnieje
+CREATE DATABASE schooldb OWNER schoolapp
+    TEMPLATE template0
+    ENCODING 'UTF8'
+    LC_COLLATE='en_US.utf8'
+    LC_CTYPE='en_US.utf8'
+    CONNECTION LIMIT = -1;
 
-ALTER DATABASE schooldb OWNER TO schoolapp;
-
+-- UWAGA: CREATE DATABASE nie może być wewnątrz DO $$ $$ — musi być na zewnątrz.
