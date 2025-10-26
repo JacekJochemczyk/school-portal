@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: schoolportal_db
+    environment:
+      # wartości z pliku .env (bezpiecznie poza repo)
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # te trzy zmienne przekażemy do skryptów init (01_init.sql)
+      APP_DB: ${APP_DB}
+      APP_DB_USER: ${APP_DB_USER}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+    volumes:
+      # 1) trwały wolumen z danymi bazy (żeby dane nie znikały po usunięciu kontenera)
+      - ./db:/var/lib/postgresql/data
+      # 2) skrypty inicjalizacyjne odpalane PRZY PIERWSZYM STARcie bazy
+      - ./db-init:/docker-entrypoint-initdb.d
+    ports:
+      # wystawiamy port Postgresa na hosta (opcjonalnie — przydaje się do diagnostyki/psql)
+      - "5432:5432"
+    healthcheck:
+      # sprawdzamy czy baza już „żyje”, zanim wystartuje backend
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: schoolportal_backend
+    # Po starcie kontenera:
+    # 1) wykonaj migracje (moga nie istniec na zupełnie czysto — ale to bezpieczne)
+    # 2) uruchom serwer developerski
+    command: bash -lc "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    env_file:
+      # Ładujemy sekrety/konfigurację z .env
+      - .env
+    environment:
+      # Te zmienne backend MUSI znać, by połączyć się z DB aplikacyjną:
+      POSTGRES_DB: ${APP_DB}
+      POSTGRES_USER: ${APP_DB_USER}
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: ${DJANGO_DEBUG}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+    volumes:
+      # Montujemy kod źródłowy, by mieć live-reload (zmiany na dysku widzi kontener)
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Wystawiamy port aplikacji web na hosta
+      - "8000:8000"
+
