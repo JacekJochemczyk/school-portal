@@ -11,8 +11,7 @@ db/
 *.log
 
 #docker-init
-db-init/
-*01_init.sql
+db-init/01_init.sql
 
 # Node/React (na przyszłość)
 node_modules/
