@@ -68,7 +68,7 @@ SCHOOL-PORTAL/
 
 ```
 
-## 🚀 Etapy budowy projektu (KROK PO KROKU)
+## 🚀 Etapy budowy projektu 
 
 ### 🧭 1. Przygotowanie środowiska
 
