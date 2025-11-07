@@ -262,7 +262,7 @@ Formularze uczniów – wybór szkoły i składanie zgłoszenia,
 
 Frontend (React/Next.js) – logowanie, dashboard, przegląd ofert,
 
-Wdrożenie – przygotowanie środowiska produkcyjnego (Docker + Nginx + SSL).
+
 --- 
 
 ### 👨‍💻 Autorzy
