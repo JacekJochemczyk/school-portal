@@ -8,7 +8,9 @@ Projekt **School Portal** to system rekrutacyjny online, który umożliwia uczni
 - 👨‍💻 Administratorzy mogą zarządzać zgłoszeniami i danymi w jednym miejscu.
 
 System powstaje w oparciu o:
-- **Django** — backend i logika aplikacji,  
+- **Django** — backend i logika aplikacji,
+- **Django REST Framework (DRF)** - interfejs API,
+- **SimpleJWT** - uwierzytelnianie tokenami,
 - **PostgreSQL** — relacyjna baza danych,  
 - **Docker + Docker Compose** — konteneryzacja i powtarzalne środowisko,  
 - **WSL2 + VS Code** — wygodne środowisko developerskie pod Windows.
@@ -21,25 +23,50 @@ System powstaje w oparciu o:
 - 🐳 Docker & Docker Compose
 - 🐘 PostgreSQL 15
 - 🌐 Django 5.2
+- ⚙️ Django REST Framework
+- 🔐 SimpleJWT
 - 🐧 WSL2 (Ubuntu)
 - 💻 Visual Studio Code (Remote WSL)
 - 🧭 Git
 
 ---
 
-## 📂 Struktura projektu
-school-portal/
-│── backend/ # Kod źródłowy aplikacji Django
+## 📁 Struktura projektu
 
-│── db/ # Wolumen danych Postgresa (trwałe dane)
+```
 
-│── db-init/ # Skrypty inicjalizujące bazę danych
+SCHOOL-PORTAL/
+├── backend/ # Główna aplikacja backendowa (Django)
+│ ├── accounts/ # Moduł kont użytkowników
+│ │ ├── migrations/ # Migracje bazy danych
+│ │ ├── admin.py # Rejestracja modeli w panelu admina
+│ │ ├── apps.py # Konfiguracja aplikacji
+│ │ ├── auth.py # Logika autoryzacji / JWT
+│ │ ├── models.py # Modele użytkowników (Student, School)
+│ │ ├── serializers.py # Serializery dla API
+│ │ ├── views_api.py # Widoki API dla użytkowników
+│ │ └── views.py # Widoki klasyczne 
+│ │
+│ ├── portal/ # Główna aplikacja portalu
+│ │ ├── api_views.py # Widoki API (endpointy)
+│ │ ├── settings.py # Ustawienia Django
+│ │ ├── urls.py # Główne trasy aplikacji
+│ │ ├── asgi.py # ASGI config
+│ │ └── wsgi.py # WSGI config
+│ │
+│ ├── manage.py # Główny plik do zarządzania Django
+│ ├── Dockerfile # Definicja obrazu Docker
+│ ├── requirements.txt # Lista zależności Pythona
+│ └── .env.example # Przykładowy plik środowiskowy
+│
+├── db/ # Pliki SQL / inicjalizacja bazy
+│ └── 01_init.sql
+│
+├── docker-compose.yml # Konfiguracja usług Docker
+├── .env # Plik środowiskowy (lokalny)
+└── README.md # Dokumentacja projektu
 
-│── .env # Zmienne środowiskowe 
-
-│── .gitignore # Plik ignorujący śmieci i sekrety
-
-│── docker-compose.yml # Definicja kontenerów
+```
 
 ## 🚀 Etapy budowy projektu (KROK PO KROKU)
 
@@ -150,83 +177,92 @@ użyliśmy zmiennych środowiskowych z .env.
 👉 Dzięki temu backend korzysta z tej samej bazy co kontener Postgres — działa od razu po uruchomieniu.
 
 ---
+### 🔐 7. Aplikacja „accounts” – model użytkownika
 
-### 🌐 8. Uruchomienie środowiska
+Dodano aplikację accounts zawierającą:
 
-Polecenie:
+model User z polami username, user_type (student/school) i is_approved,
 
-`docker compose up backend`
+migracje,
 
-uruchomiło:
+rejestrację w INSTALLED_APPS.
+---
 
-kontener bazy danych,
+### 🌐 8. Django REST Framework + JWT
 
-kontener backendu,
+Zainstalowano:
 
-migracje Django,
+djangorestframework
+djangorestframework-simplejwt
 
-serwer developerski na porcie 8000.
+W settings.py dodano konfigurację REST i SimpleJWT.
 
-W przeglądarce pojawił się komunikat:
+Dodano:
 
-Instalacja przebiegła pomyślnie! Gratulacje!
+accounts/serializers.py — rejestracja użytkownika (walidacja haseł, logika tworzenia konta szkoły),
 
-👉 To potwierdziło, że backend i baza danych są poprawnie spięte.
+accounts/views_api.py — endpointy /api/register/, /api/me/,
+
+accounts/auth.py — logowanie JWT z blokadą niezatwierdzonych szkół,
+
+aktualizację portal/urls.py z trasami REST API.
+---
+### ✅ 9. Działające endpointy API
+|  Metoda  | Endpoint              | Opis                                            | Uwagi         |
+| :------: | :-------------------- | :---------------------------------------------- | :------------ |
+| **POST** | `/api/register/`      | Rejestracja nowego użytkownika (student/school) | —             |
+| **POST** | `/api/login/`         | Logowanie — zwraca JWT (`access`, `refresh`)    | —             |
+| **POST** | `/api/token/refresh/` | Odświeżanie tokena JWT                          | —             |
+|  **GET** | `/api/me/`            | Zwraca dane zalogowanego użytkownika            | Wymaga tokena |
+|  **GET** | `/api/ping/`          | Testowy endpoint (sprawdzenie API)              | —             |
+
+
+✅ Dodatkowo:
+
+Szkoła niezatwierdzona nie może się zalogować (401 + komunikat),
+
+Student loguje się normalnie,
+
+/api/me/ działa tylko z nagłówkiem Authorization: Bearer <token>.
 
 ---
 
-### 🧰 9. Konfiguracja środowiska developerskiego (VS Code + WSL)
+### 🧰 10. Konfiguracja środowiska developerskiego (VS Code + WSL2)
 
-Pojawiły się typowe problemy:
-
-❌ \\wsl$ niedostępny z Eksploratora Windows,
-
-❌ VS Code zamykał się przy starcie,
-
-✅ rozwiązania:
+Rozwiązano typowe problemy z WSL i VS Code:
 
 restart WSL (wsl --shutdown),
 
-czyszczenie cache serwera VS Code (rm -rf ~/.vscode-server),
+czyszczenie cache (rm -rf ~/.vscode-server),
 
-ponowne uruchomienie code ..
-
-Dzięki temu:
-
-projekt działa teraz w trybie WSL,
-
-edycja kodu odbywa się w VS Code z dostępem do terminala, lintera, debuggera i Docker Extension.
-
+poprawne mapowanie folderów projektu w kontenerze.
 ---
 
-### 🧭 Aktualny stan projektu
+### 🧭 Aktualny stan projektu (listopad 2025)
 
-✅ Działa:
+✅ Działa w pełni:
 
-Docker + Postgres + Django w jednym środowisku,
+Docker + PostgreSQL + Django w jednym środowisku,
 
-automatyczna konfiguracja bazy i backendu,
+REST API z rejestracją i logowaniem JWT,
 
-migracje Django,
+weryfikacja kont szkół przez admina,
 
-dostęp do aplikacji przez przeglądarkę,
+poprawne migracje i konfiguracja bazy,
 
-środowisko programistyczne VS Code w WSL2.
+stabilne środowisko developerskie w WSL2 + VS Code.
 
-### 🧭 Planowane kolejne kroki
+🧭 Kolejne kroki
 
-Stworzenie aplikacji schools z modelami bazy danych,
+Stworzenie aplikacji schools – modele dla szkół i ofert edukacyjnych,
 
-Utworzenie widoków i formularzy dla uczniów,
+Panel admina – zatwierdzanie szkół i przegląd kont,
 
-Panel administracyjny dla szkół,
+Formularze uczniów – wybór szkoły i składanie zgłoszenia,
 
-Rejestracja i logowanie użytkowników,
+Frontend (React/Next.js) – logowanie, dashboard, przegląd ofert,
 
-Frontend React / Vue (osobny kontener),
-
-Wdrożenie na serwer
-
+Wdrożenie – przygotowanie środowiska produkcyjnego (Docker + Nginx + SSL).
 --- 
 
 ### 👨‍💻 Autorzy
