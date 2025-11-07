@@ -16,7 +16,20 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from portal.api_views import ping
+from accounts.views_api import RegisterView, MeView
+from accounts.auth import PortalTokenObtainPairView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/ping/', ping),
+    path('api/register/', RegisterView.as_view(), name='register'),
+    
+    # logowanie (JWT) i odświeżanie tokena
+    path("api/login/", PortalTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+
+    # dane zalogowanego użytkownika
+    path("api/me/", MeView.as_view(), name="me"),
 ]
